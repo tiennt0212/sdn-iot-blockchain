@@ -1,1 +1,8 @@
-/home/thanhtien/dacn/note/mininet.txt
+Ex: mn --custom ./mytopo1.py --topo mytopo --controller remote,ip=172.17.0.2,port=6633
+
+--custom #PATH TO FILE PYTHON TOPO#
+
+--topo #NAME OF TOPO# #neu khong co no, thi no se mac dinh tao ra h1-s1-h2
+
+--controller remote,ip=172.17.0.2,port=6633 #use to add controller
+
