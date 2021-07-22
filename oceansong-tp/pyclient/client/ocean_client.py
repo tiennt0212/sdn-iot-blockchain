@@ -3,6 +3,9 @@ import base64
 import random
 import requests
 import yaml
+import tokenlib
+import json
+import array as arr
 
 from sawtooth_signing import create_context
 from sawtooth_signing import CryptoFactory
@@ -21,6 +24,10 @@ FAMILY_NAME = 'oceansong'
 def _hash(data):
     return hashlib.sha512(data).hexdigest()
 
+def _generate_token(info):
+    manager = tokenlib.TokenManager(secret="OCEANSONG")
+    token = manager.make_token(info)
+    return token;
 
 class OceanClient(object):
     '''Client simple wallet class.
@@ -65,10 +72,15 @@ class OceanClient(object):
     # 1. Do any additional handling, if required
     # 2. Create a transaction and a batch
     # 3. Send to rest-api
-    def register(self, value):
+    def register(self, info):
+        # print("Value is:", value)
+        token=_generate_token(info)
+        
+        data=list((token, info))
+        
         return self._wrap_and_send(
             "register",
-            value)
+            data)
 
     def _send_to_restapi(self,
                          suffix,
@@ -107,7 +119,7 @@ class OceanClient(object):
 
     def _wrap_and_send(self,
                        action,
-                       *values):
+                       values):
         '''Create a transaction, then wrap it in a batch.     
                                                               
            Even single transactions must be wrapped into a batch.
@@ -116,8 +128,11 @@ class OceanClient(object):
         # Generate a csv utf-8 encoded string as payload
         rawPayload = action
 
+        # print("Values is:", values)
+        # print("Values 0 is:", values[0])
         for val in values:
             rawPayload = ",".join([rawPayload, str(val)])
+        print(rawPayload)
 
         payload = rawPayload.encode()
 

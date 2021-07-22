@@ -12,18 +12,18 @@ from sawtooth_sdk.processor.core import TransactionProcessor
 LOGGER = logging.getLogger(__name__)
 
 FAMILY_NAME = "oceansong"
-
+manager = tokenlib.TokenManager(secret="OCEANSONG")
 def _hash(data):
     '''Compute the SHA-512 hash and return the result as hex characters.'''
     return hashlib.sha512(data).hexdigest()
 
-def _generate_token(id):
-    manager = tokenlib.TokenManager(secret="OCEANSONG")
-    token = manager.make_token(
-        {
-            "deviceId": id,
-        })
-    return token;
+def _valid_token(token):
+    try:
+        manager.parse_token(token)
+        return True
+    except:
+        return False
+
 # Prefix for simplewallet is the first six hex digits of SHA-512(TF name).
 sw_namespace = _hash(FAMILY_NAME.encode('utf-8'))[0:6]
 
@@ -61,7 +61,8 @@ class SimpleWalletTransactionHandler(TransactionHandler):
         header = transaction.header
         payload_list = transaction.payload.decode().split(",")
         command = payload_list[0]
-        id = payload_list[1]
+        token = payload_list[1]
+        info = payload_list[2]
 
         # Get the public key sent from the client.
         from_key = header.signer_public_key
@@ -70,35 +71,32 @@ class SimpleWalletTransactionHandler(TransactionHandler):
         LOGGER.info("Command = "+ command)
 
         if command == "register":
-            self._register_token(context, id, from_key)
+            self._register_token(context, token, from_key)
         else:
             LOGGER.info("Unhandled action. " +
                 "Command should be register or transfer data")
 
-    def _register_token(self, context, id, from_key):
+    def _register_token(self, context, token, from_key):
         gateway_address = self._get_gateway_address(from_key)
         LOGGER.info('Got the key {} and the gateway address {} '.format(
             from_key, gateway_address))
         current_entry = context.get_state([gateway_address])
-        newtoken = _generate_token(id)
+
         if current_entry == []:
             LOGGER.info('No previous Gateway, creating new Gateway {} '
                 .format(from_key))
             #Make a new token list
             tokenList = []
-            tokenList.append(newtoken)
+            
             # newtoken = int(id)rejected due to state root hash mismatch
         else:
             tokenList = current_entry[0].data.decode('utf-8')
-            tokenList.append(newtoken)
-            # oldtoken = int(current_entry[0].data)
-            # newtoken = oldtoken + int(id)
 
         #Add a new token to tokenList
-        # tokenList.append(token)
+        tokenList.append(token)
 
         #Store data to BlockChain
-        state_data = str(newtoken).encode('utf-8')
+        state_data = str(tokenList).encode('utf-8')
         addresses = context.set_state({gateway_address: state_data})
 
         if len(addresses) < 1:

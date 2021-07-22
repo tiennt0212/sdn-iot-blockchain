@@ -5,6 +5,7 @@ import os
 import sys
 import traceback
 import pkg_resources
+import json
 
 from colorlog import ColoredFormatter
 
@@ -47,7 +48,7 @@ def add_register_parser(subparsers, parent_parser):
 
     parser.add_argument(
         'deviceID',
-        type=int,
+        type=str,
         help='the ID of IoT device to register')
 
     parser.add_argument(
@@ -108,9 +109,12 @@ def do_register(args):
     '''Implements the "register" subcommand by calling the client class.'''
     keyfile = _get_keyfile(args.gatewayKey)
 
+    with open(args.deviceID) as file:
+        info = json.load(file)
+
     client = OceanClient(baseUrl=DEFAULT_URL, keyFile=keyfile)
 
-    response = client.register(args.deviceID)
+    response = client.register(info)
 
     print("Response: {}".format(response))
 
@@ -142,4 +146,3 @@ def main_wrapper():
     except BaseException as err:
         traceback.print_exc(file=sys.stderr)
         sys.exit(1)
-
